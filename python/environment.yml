@@ -12,3 +12,4 @@ dependencies:
   - pytorch=1.11
   - cudatoolkit=11.3
   - pip
+  - tensorboard
