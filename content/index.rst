@@ -12,24 +12,10 @@ built in DistributedDataParallel framework and how we can adapt an existing mode
 
 .. toctree::
   :maxdepth: 1
-  :caption: Backround
+  :caption: Background
 
   parallel_training
   torch_ddp
-
-
-
-.. _learner-personas:
-
-Who is the course for?
-----------------------
-
-
-
-
-
-About the course
-----------------
 
 
 

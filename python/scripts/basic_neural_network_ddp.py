@@ -18,19 +18,8 @@ from partorch.rnn import RNNPredictor
 
 import torch.multiprocessing as mp
 import torch.distributed as dist
+import torch.nn as nn
 
-
-def setup(rank, world_size):
-    """Setup the"""
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
-
-    # initialize the process group
-    dist.init_process_group("gloo", rank=rank, world_size=world_size)
-
-
-def cleanup():
-    dist.destroy_process_group()
 
 
 def main():
@@ -59,7 +48,7 @@ def main():
     train_indices, dev_indices = train_test_split(
         visible_index, stratify=visible_labels, shuffle=True, test_size=0.2, random_state=args.random_seed)
 
-    world_size = 2
+    world_size = torch.cuda.device_count()
 
     distributed_kwargs = dict(tokenizer=tokenizer,
                               smiles_list=smiles_list, labels=labels, train_indices=train_indices, batch_size=batch_size,
@@ -69,8 +58,7 @@ def main():
              args=(world_size, distributed_kwargs),
              join=True, nprocs=world_size)
 
-    args = parser.parse_args()
-
+    
 
 def distributed_training(rank, world_size, kwargs):
     dist.init_process_group(
@@ -97,7 +85,7 @@ def distributed_training(rank, world_size, kwargs):
     model_hparams = dict(embedding_dim=128,
                          d_model=128,
                          num_layers=3,
-                         bidirectional=True,
+                         bidirectional=True ,
                          dropout=0.2,
                          learning_rate=0.001,
                          weight_decay=0.0001)
@@ -120,12 +108,16 @@ def distributed_training(rank, world_size, kwargs):
         heldout_losses = []
         heldout_targets = []
         heldout_predictions = []
+        loss_fn = nn.BCEWithLogitsLoss()
         for batch in test_dataloader:
-            loss, batch_targets, batch_predictions = best_model.eval_and_predict_batch(
-                batch)
-            heldout_losses.append(loss)
-            heldout_targets.extend(batch_targets)
-            heldout_predictions.extend(batch_predictions)
+            with torch.no_grad():
+                sequence_batch, lengths, labels = batch
+                logit_prediction = best_model(sequence_batch.to(best_model.device), lengths)
+                loss = loss_fn(logit_prediction.squeeze(), labels.to(best_model.device))
+                prob_predictions = torch.sigmoid(logit_prediction)
+            heldout_losses.append(loss.item())
+            heldout_targets.extend(labels.cpu().numpy())
+            heldout_predictions.extend(prob_predictions.cpu().numpy())
 
         heldout_roc_auc = roc_auc_score(heldout_targets, heldout_predictions)
 
