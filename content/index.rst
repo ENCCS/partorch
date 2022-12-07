@@ -2,17 +2,13 @@ Parallelizing pytorch models
 ============================
 
 There are multiple ways of utilizing parallel processing power for pytorch. 
-In this workshop we'll look at to common ways of doing this. We will go through PyTorches 
-built in DistributedDataParallel framework as well as look at how we can convert a model to
-*Pytorch Lightning* which handles (amongst other things) automatically distributing a model over 
-many GPUs and nodes.
+In this workshop we'll look at to common ways of doing this. We will go through pytorch's 
+built in DistributedDataParallel framework and how we can adapt an existing model too it.
 
 
 .. prereq::
 
   Familiarity with pytorch and experience with implementing neural networks is assumed. 
-  Basic knowledge of computer networking.
-
 
 .. toctree::
   :maxdepth: 1
@@ -20,7 +16,6 @@ many GPUs and nodes.
 
   parallel_training
   torch_ddp
-  pytorch_lightning
 
 
 
