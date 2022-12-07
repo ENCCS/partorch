@@ -17,9 +17,9 @@
 
 # -- Project information -----------------------------------------------------
 
-project = "A lesson in ``sphinx-lesson`` format"
-copyright = "2022, Parallel PyTorch and individual contributors."
-author = "Parallel PyTorch and individual contributors."
+project = "Pytorch DistributedDataParallel workshop"
+copyright = "2022, ENCCS and individual contributors."
+author = "ENCCS and individual contributors."
 github_user = "ENCCS"
 github_repo_name = "partorch"
 github_version = "main"

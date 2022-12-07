@@ -61,8 +61,7 @@ def main():
     
 
 def distributed_training(rank, world_size, kwargs):
-    dist.init_process_group(
-        kwargs['backend'], rank=rank, world_size=world_size)
+    dist.init_process_group(kwargs['backend'], rank=rank, world_size=world_size)
 
     device = torch.device(f'cuda:{rank}')
 
@@ -76,8 +75,10 @@ def distributed_training(rank, world_size, kwargs):
                                           smiles_list=smiles_list,
                                           labels=labels,  indices=train_indices,
                                           tokenizer=tokenizer, batch_size=batch_size, shuffle=True)
-    dev_dataloader = get_ddp_dataloader(rank=rank, world_size=world_size,
-                                        smiles_list=smiles_list, labels=labels,  indices=dev_indices,
+    dev_dataloader = None
+    if rank == 0:
+        # We will only do the evaluations on the rank 0 process, so we don't have to pass predictions around
+        dev_dataloader = get_dataloader(smiles_list=smiles_list, labels=labels,  indices=dev_indices,
                                         tokenizer=tokenizer, batch_size=batch_size)
 
     model_kwargs = dict(tokenizer=tokenizer)
