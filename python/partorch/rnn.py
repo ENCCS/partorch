@@ -51,34 +51,4 @@ class RNNPredictor(nn.Module):
         logits = self.output_layers(final_state)
         return logits
 
-    def loss_on_batch(self, batch):
-        sequence_batch, lengths, labels = batch
-        logit_prediction = self(sequence_batch.to(self.device), lengths)
-        loss = self.loss_fn(logit_prediction.squeeze(), labels.to(self.device))
-        return loss
-
-    def train_batch(self, batch):
-        self.train()
-        self.optimizer.zero_grad()
-        loss = self.loss_on_batch(batch)
-        loss.backward()
-        self.optimizer.step()
-        return loss.item()
-
-    def eval_batch(self, batch):
-        self.eval()
-        with torch.no_grad():
-            loss = self.loss_on_batch(batch)
-            return loss.item()
-
-    def eval_and_predict_batch(self, batch):
-        self.eval()
-        with torch.no_grad():
-            sequence_batch, lengths, labels = batch
-            logit_prediction = self(sequence_batch.to(self.device), lengths)
-            loss = self.loss_fn(logit_prediction.squeeze(), labels.to(self.device))
-            prob_predictions = torch.sigmoid(logit_prediction)
-            return loss.item(), labels.cpu().numpy(), prob_predictions.cpu().numpy()
-
-    def set_optimizer(self, learning_rate, weight_decay, **kwargs):
-        self.optimizer = AdamW(self.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    
