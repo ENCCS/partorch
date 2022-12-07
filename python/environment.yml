@@ -1,0 +1,14 @@
+name: partorch
+channels:
+  - pytorch
+  - conda-forge
+dependencies:
+  - scikit-learn=1.1.1
+  - python=3.9
+  - pandas=1.4
+  - numpy=1.22
+  - tqdm=4.64
+  - optuna=2.10
+  - pytorch=1.11
+  - cudatoolkit=11.3
+  - pip
