@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Training a Neural Network in parallel using DistributedDataParallel &mdash; Pytorch DistributedDataParallel workshop  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sphinx_lesson.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sphinx_rtd_theme_ext_color_contrast.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/overrides.css" type="text/css" />
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+        <script src="../_static/minipres.js"></script>
+        <script>let toggleHintShow = 'Click to show';</script>
+        <script>let toggleHintHide = 'Click to hide';</script>
+        <script>let toggleOpenOnPrint = 'true';</script>
+        <script src="../_static/togglebutton.js"></script>
+        <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex/" />
+    <link rel="search" title="Search" href="../search/" />
+    <link rel="prev" title="Parallel Training Backround" href="../parallel_training/" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../" class="icon icon-home"> Pytorch DistributedDataParallel workshop
+            <img src="../_static/ENCCS.jpg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search/" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Background</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../parallel_training/">Parallel Training Backround</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Training a Neural Network in parallel using DistributedDataParallel</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#modifying-an-existing-network">Modifying an existing network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#parallel-semantics">Parallel semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#initializing-the-distributed-framework">Initializing the distributed framework</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-distributed-training">The distributed training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#distributed-data-loaders">Distributed data loaders</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#distributed-optimization">Distributed optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#centralizing-evaluation">Centralizing evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-the-code">Running the code</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../">Pytorch DistributedDataParallel workshop</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">Training a Neural Network in parallel using DistributedDataParallel</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/ENCCS/partorch/blob/main/content/torch_ddp.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="training-a-neural-network-in-parallel-using-distributeddataparallel">
+<h1>Training a Neural Network in parallel using DistributedDataParallel<a class="headerlink" href="#training-a-neural-network-in-parallel-using-distributeddataparallel" title="Permalink to this heading"></a></h1>
+<p>We will use an example of a simple recurrent neural network for sequence
+classification and how we can modify this to use the DistributedDataParallel
+feature of PyTorch. You can find the code we will be using
+<a class="reference download internal" download="" href="../_downloads/585567800fd203c92c490010ddef3c85/code_archive.zip"><code class="xref download docutils literal notranslate"><span class="pre">here</span></code></a>.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
+<p>The code relies on anaconda. Create an environment by running</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ conda env create -f environment.yml
+</pre></div>
+</div>
+<p>Once this is done, activate the envioronment by running</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ conda activate partorch
+</pre></div>
+</div>
+<p>Now we need to make the code in the archive available. After extracting the files, go to the directory you extracted them to and run</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ pip install -e .
+</pre></div>
+</div>
+<p>This installs the partorch package into the active anaconda environment and makes it globally available in the environment.</p>
+</section>
+<section id="modifying-an-existing-network">
+<h2>Modifying an existing network<a class="headerlink" href="#modifying-an-existing-network" title="Permalink to this heading"></a></h2>
+<p>We will mainly work with the file <code class="code docutils literal notranslate"><span class="pre">scripts/basic_neural_network.py</span></code>. The
+important part from the file is replicated below:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="n">visible_index</span><span class="p">,</span> <span class="n">heldout_indices</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span>
+<span class="linenos"> 2</span>    <span class="n">smiles_list</span><span class="p">)),</span> <span class="n">stratify</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="n">visible_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">visible_index</span><span class="p">]</span>
+<span class="linenos"> 5</span><span class="n">train_indices</span><span class="p">,</span> <span class="n">dev_indices</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+<span class="linenos"> 6</span>    <span class="n">visible_index</span><span class="p">,</span> <span class="n">stratify</span><span class="o">=</span><span class="n">visible_labels</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+<span class="linenos"> 7</span>
+<span class="hll"><span class="linenos"> 8</span><span class="n">train_dataloader</span> <span class="o">=</span> <span class="n">get_dataloader</span><span class="p">(</span><span class="n">smiles_list</span><span class="o">=</span><span class="n">smiles_list</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>  <span class="n">indices</span><span class="o">=</span><span class="n">train_indices</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos"> 9</span>                                  <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">10</span><span class="n">dev_dataloader</span> <span class="o">=</span> <span class="n">get_dataloader</span><span class="p">(</span><span class="n">smiles_list</span><span class="o">=</span><span class="n">smiles_list</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>  <span class="n">indices</span><span class="o">=</span><span class="n">dev_indices</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">11</span>                                <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">12</span><span class="n">model_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+</span><span class="linenos">13</span>
+<span class="linenos">14</span><span class="n">model_hparams</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">embedding_dim</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+<span class="linenos">15</span>                     <span class="n">d_model</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+<span class="linenos">16</span>                     <span class="n">num_layers</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+<span class="linenos">17</span>                     <span class="n">bidirectional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">18</span>                     <span class="n">dropout</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+<span class="linenos">19</span>                     <span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+<span class="linenos">20</span>                     <span class="n">weight_decay</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">)</span>
+<span class="linenos">21</span>
+<span class="linenos">22</span><span class="n">tb_writer</span> <span class="o">=</span> <span class="n">SummaryWriter</span><span class="p">(</span><span class="s1">&#39;basic_runs&#39;</span><span class="p">)</span>
+<span class="hll"><span class="linenos">23</span><span class="n">best_model</span><span class="p">,</span> <span class="n">best_iteration</span> <span class="o">=</span> <span class="n">train</span><span class="p">(</span><span class="n">train_dataloader</span><span class="o">=</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">dev_dataloader</span><span class="o">=</span><span class="n">dev_dataloader</span><span class="p">,</span> <span class="n">writer</span><span class="o">=</span><span class="n">tb_writer</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">24</span>                                   <span class="n">max_epochs</span><span class="o">=</span><span class="n">max_epochs</span><span class="p">,</span> <span class="n">model_class</span><span class="o">=</span><span class="n">RNNPredictor</span><span class="p">,</span> <span class="n">model_args</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(),</span> <span class="n">model_kwargs</span><span class="o">=</span><span class="n">model_kwargs</span><span class="p">,</span> <span class="n">model_hparams</span><span class="o">=</span><span class="n">model_hparams</span><span class="p">)</span>
+</span><span class="linenos">25</span>
+<span class="linenos">26</span><span class="n">heldout_dataloader</span> <span class="o">=</span> <span class="n">get_dataloader</span><span class="p">(</span><span class="n">smiles_list</span><span class="o">=</span><span class="n">smiles_list</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>  <span class="n">indices</span><span class="o">=</span><span class="n">heldout_indices</span><span class="p">,</span>
+<span class="linenos">27</span>                                    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">)</span>
+<span class="linenos">28</span>
+<span class="linenos">29</span><span class="n">heldout_losses</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">30</span><span class="n">heldout_targets</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">31</span><span class="n">heldout_predictions</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">32</span><span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">heldout_dataloader</span><span class="p">:</span>
+<span class="linenos">33</span>    <span class="n">loss</span><span class="p">,</span> <span class="n">batch_targets</span><span class="p">,</span> <span class="n">batch_predictions</span> <span class="o">=</span> <span class="n">best_model</span><span class="o">.</span><span class="n">eval_and_predict_batch</span><span class="p">(</span>
+<span class="linenos">34</span>        <span class="n">batch</span><span class="p">)</span>
+<span class="linenos">35</span>    <span class="n">heldout_losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+<span class="linenos">36</span>    <span class="n">heldout_targets</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">batch_targets</span><span class="p">)</span>
+<span class="linenos">37</span>    <span class="n">heldout_predictions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">batch_predictions</span><span class="p">)</span>
+<span class="linenos">38</span>
+<span class="linenos">39</span><span class="n">heldout_roc_auc</span> <span class="o">=</span> <span class="n">roc_auc_score</span><span class="p">(</span><span class="n">heldout_targets</span><span class="p">,</span> <span class="n">heldout_predictions</span><span class="p">)</span>
+<span class="linenos">40</span>
+<span class="linenos">41</span><span class="n">tb_writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s1">&#39;Loss/test&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">heldout_losses</span><span class="p">),</span> <span class="n">best_iteration</span><span class="p">)</span>
+<span class="linenos">42</span><span class="n">tb_writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s1">&#39;ROC_AUC/test&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">heldout_roc_auc</span><span class="p">),</span> <span class="n">best_iteration</span><span class="p">)</span>
+<span class="linenos">43</span><span class="n">tb_writer</span><span class="o">.</span><span class="n">add_hparams</span><span class="p">(</span><span class="n">hparam_dict</span><span class="o">=</span><span class="n">model_hparams</span><span class="p">,</span> <span class="n">metric_dict</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;hparam/roc_auc&#39;</span><span class="p">:</span> <span class="n">heldout_roc_auc</span><span class="p">})</span>
+<span class="linenos">44</span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final test ROC AUC: </span><span class="si">{</span><span class="n">heldout_roc_auc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">45</span><span class="n">tb_writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The highlighted lines show the parts we will focus on. These are the ones which we need to take into
+account when adding the parallelization.</p>
+</section>
+<section id="parallel-semantics">
+<h2>Parallel semantics<a class="headerlink" href="#parallel-semantics" title="Permalink to this heading"></a></h2>
+<p>Our parallel neural network will consist of multiple process running
+concurrently. These will be spawned from our main process but will
+execute the same code. To make the different processes work on
+different parts of the data, we differentiate them through an
+identifier called <em>rank</em>. We often wan’t to perform some step only
+once for the whole group, so it’s customary that we assign one of</p>
+<blockquote>
+<div><p>the ranks a special importance, for convenience this is typically
+chosen to be the process with rank 0.</p>
+</div></blockquote>
+</section>
+<section id="initializing-the-distributed-framework">
+<h2>Initializing the distributed framework<a class="headerlink" href="#initializing-the-distributed-framework" title="Permalink to this heading"></a></h2>
+<p>We start by adding distributed functionality, the code we want to execute in
+parallel is wrapped in a function, here called <code class="code docutils literal notranslate"><span class="pre">distributed_training()</span></code>,
+which will be the entry point for all spawned processes. We use pytorch’s
+<code class="code docutils literal notranslate"><span class="pre">multiprocessing</span></code> package to spawn processes with this function as a
+target. We also create a dictionary with all the arguments our training function will need.
+The function will be supplied with the rank of the process from the
+<code class="code docutils literal notranslate"><span class="pre">torch.multiprocessing.spawn()</span></code> function, but we also supply the
+total size of the process group for convenience.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span>    <span class="n">visible_index</span><span class="p">,</span> <span class="n">heldout_indices</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span>
+<span class="linenos"> 2</span>        <span class="n">smiles_list</span><span class="p">)),</span> <span class="n">stratify</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+<span class="linenos"> 3</span>    <span class="n">visible_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">visible_index</span><span class="p">]</span>
+<span class="linenos"> 4</span>    <span class="n">train_indices</span><span class="p">,</span> <span class="n">dev_indices</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+<span class="linenos"> 5</span>        <span class="n">visible_index</span><span class="p">,</span> <span class="n">stratify</span><span class="o">=</span><span class="n">visible_labels</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+<span class="linenos"> 6</span>
+<span class="hll"><span class="linenos"> 7</span>    <span class="n">world_size</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span>
+</span><span class="hll"><span class="linenos"> 8</span>
+</span><span class="hll"><span class="linenos"> 9</span>    <span class="n">distributed_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">10</span>                            <span class="n">smiles_list</span><span class="o">=</span><span class="n">smiles_list</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">train_indices</span><span class="o">=</span><span class="n">train_indices</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">11</span>                            <span class="n">dev_indices</span><span class="o">=</span><span class="n">dev_indices</span><span class="p">,</span> <span class="n">heldout_indices</span><span class="o">=</span><span class="n">heldout_indices</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="n">max_epochs</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s1">&#39;nccl&#39;</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">12</span>
+</span><span class="hll"><span class="linenos">13</span>    <span class="n">mp</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">distributed_training</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">14</span>            <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">world_size</span><span class="p">,</span> <span class="n">distributed_kwargs</span><span class="p">),</span>
+</span><span class="hll"><span class="linenos">15</span>            <span class="n">join</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nprocs</span><span class="o">=</span><span class="n">world_size</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</section>
+<section id="the-distributed-training">
+<h2>The distributed training<a class="headerlink" href="#the-distributed-training" title="Permalink to this heading"></a></h2>
+<p>We need to define the <code class="code docutils literal notranslate"><span class="pre">distributed_training()</span></code> function and start with something like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">def</span> <span class="nf">distributed_training</span><span class="p">(</span><span class="n">rank</span><span class="p">,</span> <span class="n">world_size</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+<span class="hll"><span class="linenos"> 2</span>        <span class="n">dist</span><span class="o">.</span><span class="n">init_process_group</span><span class="p">(</span>
+</span><span class="hll"><span class="linenos"> 3</span>            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;backend&#39;</span><span class="p">],</span> <span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">world_size</span><span class="o">=</span><span class="n">world_size</span><span class="p">)</span>
+</span><span class="linenos"> 4</span>
+<span class="hll"><span class="linenos"> 5</span>        <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;cuda:</span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+</span><span class="linenos"> 6</span>
+<span class="linenos"> 7</span>        <span class="n">smiles_list</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;smiles_list&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">]</span>
+<span class="linenos"> 8</span>        <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;tokenizer&#39;</span><span class="p">]</span>
+<span class="linenos"> 9</span>        <span class="n">train_indices</span><span class="p">,</span> <span class="n">dev_indices</span><span class="p">,</span> <span class="n">heldout_indices</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span>
+<span class="linenos">10</span>            <span class="s1">&#39;train_indices&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;dev_indices&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;heldout_indices&#39;</span><span class="p">]</span>
+<span class="linenos">11</span>        <span class="n">batch_size</span><span class="p">,</span> <span class="n">max_epochs</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Most of this code is just unpacking the parameters we gave in the <code class="code docutils literal notranslate"><span class="pre">kwargs</span></code> argument,
+but the vital part is the call to <code class="code docutils literal notranslate"><span class="pre">dist.init_process_group()</span></code>. This is what actually
+sets up the current process as part of the process group. There’s a lot of machinery
+beneath this which we will not cover in this workshop.</p>
+<p>One important question is how pytorch should communicate between the processes,
+and the call to <code class="code docutils literal notranslate"><span class="pre">init_process_group`</span></code> is where we specify this. There are
+multiple backends which can be used for the interprocess communication, but the
+recommended one when training on multiple GPUs is ‘nccl’, which is developed by
+NVIDIA, and is what we’ll use in this workshop.</p>
+<p>We also set the device at this point. A GPU may only be used by one process, here
+we instantiate a device reference using the rank of the process. If you need to
+limit your program to only use a subset of your GPUs, you can set the environmental variable
+<code class="code docutils literal notranslate"><span class="pre">CUDA_VISIBLE_GPUS=id1[,id2]</span></code> before starting the script.</p>
+<p>To simplify setting up the underlying process group, pytorch supplies a convenience script
+<code class="code docutils literal notranslate"><span class="pre">torchrun</span></code> which can be used to inform the backend where the master process is located
+which is used to coordinate the processes.</p>
+<p>We can test our script by running:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ torchrun --master_port <span class="m">31133</span> scripts/basic_neural_network_ddp.py dataset/BBBP.csv
+</pre></div>
+</div>
+<p>This starts the script with some underlying environmental variables set which allows the process group
+to coordinate, in particular we tell it to use a specific port for the master process (the arbitrary 31133 argument
+to –master_port). We might need to set this port to  different values if we’re running multiple
+parallel training at the same time.</p>
+<p>We can also use <code class="code docutils literal notranslate"><span class="pre">torchrun</span></code> to manually spawn multiple processes at different compute nodes, in
+that case we also tell the program at what IP adress to find our master node by suppliying a
+<code class="code docutils literal notranslate"><span class="pre">--master_addr</span></code> argument.</p>
+<p>Now we’re ready to implement more of <code class="code docutils literal notranslate"><span class="pre">distributed_training()</span></code>. The main goal of our data-parallel training
+is to let the different processes work on different parts of the batch. This means that we need to
+partition our data based on what process is running the code. Here’s the outline of what we’ll
+implement next:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">def</span> <span class="nf">distributed_training</span><span class="p">(</span><span class="n">rank</span><span class="p">,</span> <span class="n">world_size</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+<span class="linenos"> 2</span>    <span class="n">dist</span><span class="o">.</span><span class="n">init_process_group</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;backend&#39;</span><span class="p">],</span> <span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">world_size</span><span class="o">=</span><span class="n">world_size</span><span class="p">)</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span>    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;cuda:</span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="linenos"> 5</span>
+<span class="linenos"> 6</span>    <span class="n">smiles_list</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;smiles_list&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">]</span>
+<span class="linenos"> 7</span>    <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;tokenizer&#39;</span><span class="p">]</span>
+<span class="linenos"> 8</span>    <span class="n">train_indices</span><span class="p">,</span> <span class="n">dev_indices</span><span class="p">,</span> <span class="n">heldout_indices</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span>
+<span class="linenos"> 9</span>        <span class="s1">&#39;train_indices&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;dev_indices&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;heldout_indices&#39;</span><span class="p">]</span>
+<span class="linenos">10</span>    <span class="n">batch_size</span><span class="p">,</span> <span class="n">max_epochs</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">]</span>
+<span class="linenos">11</span>
+<span class="hll"><span class="linenos">12</span><span class="n">train_dataloader</span> <span class="o">=</span> <span class="n">get_ddp_dataloader</span><span class="p">(</span><span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">world_size</span><span class="o">=</span><span class="n">world_size</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">13</span>                                      <span class="n">smiles_list</span><span class="o">=</span><span class="n">smiles_list</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">14</span>                                      <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>  <span class="n">indices</span><span class="o">=</span><span class="n">train_indices</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">15</span>                                      <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">16</span><span class="n">dev_dataloader</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span class="hll"><span class="linenos">17</span><span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span class="hll"><span class="linenos">18</span>    <span class="c1"># We will only do the evaluations on the rank 0 process, so we don&#39;t have to pass predictions around</span>
+</span><span class="hll"><span class="linenos">19</span>    <span class="n">dev_dataloader</span> <span class="o">=</span> <span class="n">get_dataloader</span><span class="p">(</span><span class="n">smiles_list</span><span class="o">=</span><span class="n">smiles_list</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>  <span class="n">indices</span><span class="o">=</span><span class="n">dev_indices</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">20</span>                                    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+</span><span class="linenos">21</span>
+<span class="linenos">22</span>    <span class="n">model_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">)</span>
+<span class="linenos">23</span>
+<span class="linenos">24</span>    <span class="n">model_hparams</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">embedding_dim</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+<span class="linenos">25</span>                        <span class="n">d_model</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+<span class="linenos">26</span>                        <span class="n">num_layers</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+<span class="linenos">27</span>                        <span class="n">bidirectional</span><span class="o">=</span><span class="kc">True</span> <span class="p">,</span>
+<span class="linenos">28</span>                        <span class="n">dropout</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+<span class="linenos">29</span>                        <span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+<span class="linenos">30</span>                        <span class="n">weight_decay</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">)</span>
+<span class="linenos">31</span>
+<span class="linenos">32</span>    <span class="n">tb_writer</span> <span class="o">=</span> <span class="n">SummaryWriter</span><span class="p">(</span><span class="s1">&#39;basic_runs&#39;</span><span class="p">,</span> <span class="n">filename_suffix</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;rank</span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="linenos">33</span>
+<span class="hll"><span class="linenos">34</span>    <span class="n">best_model</span><span class="p">,</span> <span class="n">best_iteration</span> <span class="o">=</span> <span class="n">train_ddp</span><span class="p">(</span><span class="n">train_dataloader</span><span class="o">=</span><span class="n">train_dataloader</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">35</span>                                        <span class="n">dev_dataloader</span><span class="o">=</span><span class="n">dev_dataloader</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">36</span>                                        <span class="n">writer</span><span class="o">=</span><span class="n">tb_writer</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">37</span>                                        <span class="n">max_epochs</span><span class="o">=</span><span class="n">max_epochs</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">38</span>                                        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">39</span>                                        <span class="n">model_class</span><span class="o">=</span><span class="n">RNNPredictor</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">40</span>                                        <span class="n">model_args</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(),</span>
+</span><span class="hll"><span class="linenos">41</span>                                        <span class="n">model_kwargs</span><span class="o">=</span><span class="n">model_kwargs</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">42</span>                                        <span class="n">model_hparams</span><span class="o">=</span><span class="n">model_hparams</span><span class="p">)</span>
+</span><span class="linenos">43</span>
+<span class="hll"><span class="linenos">44</span>    <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span class="hll"><span class="linenos">45</span>        <span class="n">test_dataloader</span> <span class="o">=</span> <span class="n">get_dataloader</span><span class="p">(</span><span class="n">smiles_list</span><span class="o">=</span><span class="n">smiles_list</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>  <span class="n">indices</span><span class="o">=</span><span class="n">heldout_indices</span><span class="p">,</span>
+</span><span class="hll"><span class="linenos">46</span>                                        <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">47</span>        <span class="n">heldout_losses</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span class="hll"><span class="linenos">48</span>        <span class="n">heldout_targets</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span class="hll"><span class="linenos">49</span>        <span class="n">heldout_predictions</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span class="hll"><span class="linenos">50</span>        <span class="n">loss_fn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BCEWithLogitsLoss</span><span class="p">()</span>
+</span><span class="hll"><span class="linenos">51</span>        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">test_dataloader</span><span class="p">:</span>
+</span><span class="hll"><span class="linenos">52</span>            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span><span class="hll"><span class="linenos">53</span>                <span class="n">sequence_batch</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">batch</span>
+</span><span class="hll"><span class="linenos">54</span>                <span class="n">logit_prediction</span> <span class="o">=</span> <span class="n">best_model</span><span class="p">(</span><span class="n">sequence_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">best_model</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">lengths</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">55</span>                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">logit_prediction</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">best_model</span><span class="o">.</span><span class="n">device</span><span class="p">))</span>
+</span><span class="hll"><span class="linenos">56</span>                <span class="n">prob_predictions</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logit_prediction</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">57</span>            <span class="n">heldout_losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+</span><span class="hll"><span class="linenos">58</span>            <span class="n">heldout_targets</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">labels</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+</span><span class="hll"><span class="linenos">59</span>            <span class="n">heldout_predictions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">prob_predictions</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+</span><span class="hll"><span class="linenos">60</span>
+</span><span class="hll"><span class="linenos">61</span>        <span class="n">heldout_roc_auc</span> <span class="o">=</span> <span class="n">roc_auc_score</span><span class="p">(</span><span class="n">heldout_targets</span><span class="p">,</span> <span class="n">heldout_predictions</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">62</span>
+</span><span class="hll"><span class="linenos">63</span>        <span class="n">tb_writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span>
+</span><span class="hll"><span class="linenos">64</span>            <span class="s1">&#39;Loss/test&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">heldout_losses</span><span class="p">),</span> <span class="n">best_iteration</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">65</span>        <span class="n">tb_writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span>
+</span><span class="hll"><span class="linenos">66</span>            <span class="s1">&#39;ROC_AUC/test&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">heldout_roc_auc</span><span class="p">),</span> <span class="n">best_iteration</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">67</span>        <span class="n">tb_writer</span><span class="o">.</span><span class="n">add_hparams</span><span class="p">(</span><span class="n">hparam_dict</span><span class="o">=</span><span class="n">model_hparams</span><span class="p">,</span> <span class="n">metric_dict</span><span class="o">=</span><span class="p">{</span>
+</span><span class="hll"><span class="linenos">68</span>                            <span class="s1">&#39;hparam/roc_auc&#39;</span><span class="p">:</span> <span class="n">heldout_roc_auc</span><span class="p">})</span>
+</span><span class="hll"><span class="linenos">69</span>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final test ROC AUC: </span><span class="si">{</span><span class="n">heldout_roc_auc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span class="linenos">70</span>    <span class="n">tb_writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>We will go through these three highlighted block in order.</p>
+</section>
+<section id="distributed-data-loaders">
+<h2>Distributed data loaders<a class="headerlink" href="#distributed-data-loaders" title="Permalink to this heading"></a></h2>
+<p>First we will have a look at <code class="code docutils literal notranslate"><span class="pre">get_ddp_dataloader</span></code> next to <code class="code docutils literal notranslate"><span class="pre">get_dataloader</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">def</span> <span class="nf">get_dataloader</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">smiles_list</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">indices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="linenos"> 2</span>    <span class="k">if</span> <span class="n">indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 3</span>        <span class="n">smiles_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">smiles_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+<span class="linenos"> 4</span>        <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+<span class="linenos"> 5</span>    <span class="n">smiles_dataset</span> <span class="o">=</span> <span class="n">SmilesDataset</span><span class="p">(</span><span class="n">smiles_list</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">)</span>
+<span class="hll"><span class="linenos"> 6</span>    <span class="n">dataloader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">smiles_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">,</span> <span class="n">collate_fn</span><span class="o">=</span><span class="n">collate_function</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span> <span class="n">drop_last</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span class="linenos"> 7</span>    <span class="k">return</span> <span class="n">dataloader</span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span><span class="k">def</span> <span class="nf">get_ddp_dataloader</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">world_size</span><span class="p">,</span> <span class="n">smiles_list</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">indices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="linenos">10</span>    <span class="k">if</span> <span class="n">indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">11</span>        <span class="n">smiles_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">smiles_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+<span class="linenos">12</span>        <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+<span class="linenos">13</span>    <span class="n">smiles_dataset</span> <span class="o">=</span> <span class="n">SmilesDataset</span><span class="p">(</span><span class="n">smiles_list</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">)</span>
+<span class="hll"><span class="linenos">14</span>    <span class="n">sampler</span> <span class="o">=</span> <span class="n">DistributedSampler</span><span class="p">(</span><span class="n">smiles_dataset</span><span class="p">,</span> <span class="n">num_replicas</span><span class="o">=</span><span class="n">world_size</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">,</span> <span class="n">drop_last</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">15</span>    <span class="n">dataloader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">smiles_dataset</span><span class="p">,</span> <span class="n">sampler</span><span class="o">=</span><span class="n">sampler</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">collate_fn</span><span class="o">=</span><span class="n">collate_function</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">)</span>
+</span><span class="linenos">16</span>    <span class="k">return</span> <span class="n">dataloader</span>
+</pre></div>
+</div>
+<p>Conveniently, pytorch already has the functionality we need to
+split our batches in a distributed setting. By telling the
+<code class="code docutils literal notranslate"><span class="pre">DataLoader</span></code> to use a <code class="code docutils literal notranslate"><span class="pre">DistributedSampler</span></code> with appropriate arguments
+for <em>rank</em> and <em>world</em> size, the dataloader instantiated in the current
+process will get its own dedicated part of the dataset to work on.</p>
+</section>
+<section id="distributed-optimization">
+<h2>Distributed optimization<a class="headerlink" href="#distributed-optimization" title="Permalink to this heading"></a></h2>
+<p>Now that we’ve set up partitioned data loaders in the different processes, we will register our model with the <code class="code docutils literal notranslate"><span class="pre">DistributedDataParallel</span></code> so that our optimization will be distributed over our processes.
+Let’s have a look at the old training vs. updated training loop:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">train_dataloader</span><span class="p">,</span> <span class="n">dev_dataloader</span><span class="p">,</span> <span class="n">writer</span><span class="p">,</span> <span class="n">max_epochs</span><span class="p">,</span> <span class="n">model_class</span><span class="p">,</span> <span class="n">model_args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model_hparams</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="linenos"> 2</span>    <span class="k">if</span> <span class="n">model_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 3</span>        <span class="n">model_args</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">()</span>
+<span class="linenos"> 4</span>    <span class="k">if</span> <span class="n">model_kwargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 5</span>        <span class="n">model_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+<span class="linenos"> 6</span>    <span class="k">if</span> <span class="n">model_hparams</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 7</span>        <span class="n">model_hparams</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+<span class="linenos"> 8</span>
+<span class="hll"><span class="linenos"> 9</span>    <span class="n">model</span> <span class="o">=</span> <span class="n">model_class</span><span class="p">(</span><span class="o">*</span><span class="n">model_args</span><span class="p">,</span> <span class="o">**</span><span class="n">model_kwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">model_hparams</span><span class="p">)</span>
+</span><span class="linenos">10</span>
+<span class="linenos">11</span>    <span class="n">best_roc_auc</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="linenos">12</span>    <span class="n">best_model</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="linenos">13</span>    <span class="n">best_iteration</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="linenos">14</span>    <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="linenos">15</span>
+<span class="linenos">16</span>    <span class="n">learning_rate</span> <span class="o">=</span> <span class="n">model_hparams</span><span class="p">[</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">]</span>
+<span class="linenos">17</span>    <span class="n">weight_decay</span> <span class="o">=</span> <span class="n">model_hparams</span><span class="p">[</span><span class="s1">&#39;weight_decay&#39;</span><span class="p">]</span>
+<span class="hll"><span class="linenos">18</span>    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">AdamW</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="n">weight_decay</span><span class="p">)</span>
+</span><span class="linenos">19</span>    <span class="n">loss_fn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BCEWithLogitsLoss</span><span class="p">()</span>
+<span class="linenos">20</span>    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">trange</span><span class="p">(</span><span class="n">max_epochs</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s1">&#39;epoch&#39;</span><span class="p">):</span>
+<span class="linenos">21</span>        <span class="n">training_losses</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">22</span>        <span class="n">dev_losses</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">23</span>        <span class="n">dev_targets</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">24</span>        <span class="n">dev_predictions</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">25</span>
+<span class="hll"><span class="linenos">26</span>        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span><span class="linenos">27</span>        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Training batch&quot;</span><span class="p">):</span>
+<span class="linenos">28</span>            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+<span class="linenos">29</span>            <span class="n">sequence_batch</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">batch</span>
+<span class="hll"><span class="linenos">30</span>            <span class="n">logit_prediction</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">sequence_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">lengths</span><span class="p">)</span>
+</span><span class="linenos">31</span>            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">logit_prediction</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">))</span>
+<span class="linenos">32</span>            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+<span class="linenos">33</span>            <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+<span class="linenos">34</span>
+<span class="linenos">35</span>            <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s1">&#39;Loss/train&#39;</span><span class="p">,</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">iteration</span><span class="p">)</span>
+<span class="linenos">36</span>            <span class="n">training_losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+<span class="linenos">37</span>            <span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="linenos">38</span>
+<span class="hll"><span class="linenos">39</span>        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span><span class="linenos">40</span>        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">dev_dataloader</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Dev batch&quot;</span><span class="p">):</span>
+<span class="linenos">41</span>            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+<span class="linenos">42</span>                <span class="n">sequence_batch</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">batch</span>
+<span class="hll"><span class="linenos">43</span>                <span class="n">logit_prediction</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">sequence_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">lengths</span><span class="p">)</span>
+</span><span class="linenos">44</span>                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">logit_prediction</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">))</span>
+<span class="linenos">45</span>                <span class="n">prob_predictions</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logit_prediction</span><span class="p">)</span>
+<span class="linenos">46</span>
+<span class="linenos">47</span>            <span class="n">dev_losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+<span class="linenos">48</span>            <span class="n">dev_targets</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">labels</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+<span class="linenos">49</span>            <span class="n">dev_predictions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">prob_predictions</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+<span class="linenos">50</span>
+<span class="linenos">51</span>        <span class="n">dev_roc_auc</span> <span class="o">=</span> <span class="n">roc_auc_score</span><span class="p">(</span><span class="n">dev_targets</span><span class="p">,</span> <span class="n">dev_predictions</span><span class="p">)</span>
+<span class="linenos">52</span>
+<span class="linenos">53</span>        <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s1">&#39;Loss/dev&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dev_losses</span><span class="p">),</span> <span class="n">iteration</span><span class="p">)</span>
+<span class="linenos">54</span>        <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s1">&#39;ROC_AUC/dev&#39;</span><span class="p">,</span> <span class="n">dev_roc_auc</span><span class="p">,</span> <span class="n">iteration</span><span class="p">)</span>
+<span class="linenos">55</span>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Training loss </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">training_losses</span><span class="p">)</span><span class="si">}</span><span class="se">\t</span><span class="s2">Dev loss: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dev_losses</span><span class="p">)</span><span class="si">}</span><span class="se">\t</span><span class="s2">Dev ROC AUC:</span><span class="si">{</span><span class="n">dev_roc_auc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">56</span>
+<span class="linenos">57</span>        <span class="k">if</span> <span class="n">dev_roc_auc</span> <span class="o">&gt;</span> <span class="n">best_roc_auc</span><span class="p">:</span>
+<span class="linenos">58</span>            <span class="n">best_roc_auc</span> <span class="o">=</span> <span class="n">dev_roc_auc</span>
+<span class="linenos">59</span>            <span class="n">best_model</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="linenos">60</span>            <span class="n">best_model</span><span class="o">.</span><span class="n">recurrent_layers</span><span class="o">.</span><span class="n">flatten_parameters</span><span class="p">()</span>  <span class="c1"># After the deepcopy, the weight matrices are not necessarily in contiguous memory, this fixes that issue</span>
+<span class="linenos">61</span>            <span class="n">best_iteration</span> <span class="o">=</span> <span class="n">iteration</span>
+<span class="linenos">62</span>
+<span class="linenos">63</span>    <span class="k">return</span> <span class="n">best_model</span><span class="p">,</span> <span class="n">best_iteration</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">def</span> <span class="nf">train_ddp</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">train_dataloader</span><span class="p">,</span> <span class="n">dev_dataloader</span><span class="p">,</span> <span class="n">writer</span><span class="p">,</span> <span class="n">max_epochs</span><span class="p">,</span> <span class="n">model_class</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">model_args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model_hparams</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="linenos"> 2</span>    <span class="k">if</span> <span class="n">model_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 3</span>        <span class="n">model_args</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">()</span>
+<span class="linenos"> 4</span>    <span class="k">if</span> <span class="n">model_kwargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 5</span>        <span class="n">model_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+<span class="linenos"> 6</span>    <span class="k">if</span> <span class="n">model_hparams</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 7</span>        <span class="n">model_hparams</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+<span class="linenos"> 8</span>
+<span class="hll"><span class="linenos"> 9</span>    <span class="n">model</span> <span class="o">=</span> <span class="n">model_class</span><span class="p">(</span><span class="o">*</span><span class="n">model_args</span><span class="p">,</span> <span class="o">**</span><span class="n">model_kwargs</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">model_hparams</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">10</span>    <span class="n">ddp_model</span> <span class="o">=</span> <span class="n">DistributedDataParallel</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</span><span class="linenos">11</span>
+<span class="linenos">12</span>    <span class="n">best_roc_auc</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="linenos">13</span>    <span class="n">best_model</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="linenos">14</span>    <span class="n">best_iteration</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="linenos">15</span>    <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="linenos">16</span>
+<span class="linenos">17</span>    <span class="n">learning_rate</span> <span class="o">=</span> <span class="n">model_hparams</span><span class="p">[</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">]</span>
+<span class="linenos">18</span>    <span class="n">weight_decay</span> <span class="o">=</span> <span class="n">model_hparams</span><span class="p">[</span><span class="s1">&#39;weight_decay&#39;</span><span class="p">]</span>
+<span class="hll"><span class="linenos">19</span>    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">AdamW</span><span class="p">(</span><span class="n">ddp_model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="n">weight_decay</span><span class="p">)</span>
+</span><span class="linenos">20</span>    <span class="n">loss_fn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BCEWithLogitsLoss</span><span class="p">()</span>
+<span class="linenos">21</span>    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_epochs</span><span class="p">):</span>
+<span class="linenos">22</span>        <span class="n">training_losses</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">23</span>        <span class="n">dev_losses</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">24</span>        <span class="n">dev_targets</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">25</span>        <span class="n">dev_predictions</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">26</span>
+<span class="hll"><span class="linenos">27</span>        <span class="n">ddp_model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span><span class="linenos">28</span>        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">train_dataloader</span><span class="p">:</span>
+<span class="linenos">29</span>            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+<span class="linenos">30</span>            <span class="n">sequence_batch</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">batch</span>
+<span class="hll"><span class="linenos">31</span>            <span class="n">logit_prediction</span> <span class="o">=</span> <span class="n">ddp_model</span><span class="p">(</span><span class="n">sequence_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">lengths</span><span class="p">)</span>
+</span><span class="linenos">32</span>            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">logit_prediction</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">))</span>
+<span class="linenos">33</span>            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+<span class="linenos">34</span>            <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+<span class="linenos">35</span>
+<span class="linenos">36</span>            <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s1">&#39;Loss/train&#39;</span><span class="p">,</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">iteration</span><span class="p">)</span>
+<span class="linenos">37</span>            <span class="n">training_losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+<span class="linenos">38</span>            <span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="linenos">39</span>
+<span class="hll"><span class="linenos">40</span>        <span class="k">if</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span class="linenos">41</span>            <span class="n">ddp_model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+<span class="linenos">42</span>            <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">dev_dataloader</span><span class="p">:</span>
+<span class="linenos">43</span>                <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+<span class="linenos">44</span>                    <span class="n">sequence_batch</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">batch</span>
+<span class="hll"><span class="linenos">45</span>                    <span class="n">logit_prediction</span> <span class="o">=</span> <span class="n">ddp_model</span><span class="p">(</span><span class="n">sequence_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">lengths</span><span class="p">)</span>
+</span><span class="linenos">46</span>                    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">logit_prediction</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">))</span>
+<span class="linenos">47</span>                    <span class="n">prob_predictions</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logit_prediction</span><span class="p">)</span>
+<span class="linenos">48</span>
+<span class="linenos">49</span>                <span class="n">dev_losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+<span class="linenos">50</span>                <span class="n">dev_targets</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">labels</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+<span class="linenos">51</span>                <span class="n">dev_predictions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">prob_predictions</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+<span class="linenos">52</span>
+<span class="linenos">53</span>            <span class="n">dev_roc_auc</span> <span class="o">=</span> <span class="n">roc_auc_score</span><span class="p">(</span><span class="n">dev_targets</span><span class="p">,</span> <span class="n">dev_predictions</span><span class="p">)</span>
+<span class="linenos">54</span>
+<span class="linenos">55</span>            <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s1">&#39;Loss/dev&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dev_losses</span><span class="p">),</span> <span class="n">iteration</span><span class="p">)</span>
+<span class="linenos">56</span>            <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s1">&#39;ROC_AUC/dev&#39;</span><span class="p">,</span> <span class="n">dev_roc_auc</span><span class="p">,</span> <span class="n">iteration</span><span class="p">)</span>
+<span class="linenos">57</span>            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Training loss </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">training_losses</span><span class="p">)</span><span class="si">}</span><span class="se">\t</span><span class="s2">Dev loss: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dev_losses</span><span class="p">)</span><span class="si">}</span><span class="se">\t</span><span class="s2">Dev ROC AUC:</span><span class="si">{</span><span class="n">dev_roc_auc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">58</span>
+<span class="linenos">59</span>            <span class="k">if</span> <span class="n">dev_roc_auc</span> <span class="o">&gt;</span> <span class="n">best_roc_auc</span><span class="p">:</span>
+<span class="linenos">60</span>                <span class="n">best_roc_auc</span> <span class="o">=</span> <span class="n">dev_roc_auc</span>
+<span class="linenos">61</span>                <span class="n">best_model</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="linenos">62</span>                <span class="n">best_model</span><span class="o">.</span><span class="n">recurrent_layers</span><span class="o">.</span><span class="n">flatten_parameters</span><span class="p">()</span>  <span class="c1"># After the deepcopy, the weight matrices are not necessarily in contiguous memory, this fixes that issue</span>
+<span class="linenos">63</span>                <span class="n">best_iteration</span> <span class="o">=</span> <span class="n">iteration</span>
+<span class="linenos">64</span>
+<span class="linenos">65</span><span class="k">return</span> <span class="n">best_model</span><span class="p">,</span> <span class="n">best_iteration</span>
+</pre></div>
+</div>
+<p>If you compare the two code parts, you can see that we’re basically just wrapping
+our model in an <code class="code docutils literal notranslate"><span class="pre">DistributedDataParallel</span></code> object, which gives us a new model
+we call <code class="code docutils literal notranslate"><span class="pre">ddp_model</span></code>.
+We subsequently replace the calls to <code class="code docutils literal notranslate"><span class="pre">model</span></code> with <code class="code docutils literal notranslate"><span class="pre">ddp_model</span></code> which
+is all we need to do. The optimizer will do the right thing, synchronizing the
+gradients across worker processes, through it’s reference
+to <code class="code docutils literal notranslate"><span class="pre">ddp_model.parameters()</span></code>.</p>
+</section>
+<section id="centralizing-evaluation">
+<h2>Centralizing evaluation<a class="headerlink" href="#centralizing-evaluation" title="Permalink to this heading"></a></h2>
+<p>Note that we only run the evaluation on the dev set and update the <code class="code docutils literal notranslate"><span class="pre">best_model</span></code> copy
+at the process with rank=0. The reason for this is that we don’t want to
+have to send results from the predictions around.</p>
+<p>This is also what we do in the final block of the <code class="code docutils literal notranslate"><span class="pre">distributed_training</span></code> function,
+we only perform the final test set evaluation at the process with rank 0.</p>
+</section>
+<section id="running-the-code">
+<h2>Running the code<a class="headerlink" href="#running-the-code" title="Permalink to this heading"></a></h2>
+<p>We have now completed our augmentation of the model and can run it using <code class="code docutils literal notranslate"><span class="pre">torchrun</span></code>:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ torchrun --master_port <span class="m">31133</span> scripts/basic_neural_network_ddp.py dataset/BBBP.csv
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../parallel_training/" class="btn btn-neutral float-left" title="Parallel Training Backround" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, ENCCS and individual contributors..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
