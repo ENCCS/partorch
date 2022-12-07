@@ -6,6 +6,34 @@ classification and how we can modify this to use the DistributedDataParallel
 feature of PyTorch. You can find the code we will be using 
 :download:`here <_static/code_archive.zip>`.
 
+Installation
+------------
+
+The code relies on anaconda. Create an environment by running
+
+.. code-block:: shell
+
+    $ conda env create -f environment.yml
+
+Once this is done, activate the envioronment by running
+
+
+.. code-block:: shell
+
+    $ conda activate partorch
+
+Now we need to make the code in the archive available. After extracting the files, go to the directory you extracted them to and run
+
+.. code-block:: shell
+
+    $ pip install -e .
+
+This installs the partorch package into the active anaconda environment and makes it globally available in the environment.
+
+
+Modifying an existing network
+-----------------------------
+
 We will mainly work with the file :code:`scripts/basic_neural_network.py`. The 
 important part from the file is replicated below:
 
